@@ -7,3 +7,5 @@
 *.props
 *.targets
 /WikiParser/asheron_backup2_pages_current.xml
+/WikiParser/bin
+/WikiParser/obj
