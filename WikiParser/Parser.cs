@@ -9,9 +9,10 @@ namespace WikiParser
     {
         enum ParseState { Nothing, NPC };
         private ParseState _state = ParseState.Nothing;
-        private int _badNpcCoords;
         private Npc _npc = null;
+        private int _badNpcCoords;
         private int _multipleNpcCoords;
+        private int _singleNpcCoords;
         public void Parse(StreamReader reader)
         {
             // Clear files
@@ -30,7 +31,10 @@ namespace WikiParser
                         break;
                 }
             }
-            Console.WriteLine("Bad NPC Coords count: {0}, multiple NPC Coords count: {1}", _badNpcCoords, _multipleNpcCoords);
+            Console.WriteLine("-----");
+            Console.WriteLine("Single NPC Coords: {0}", _singleNpcCoords);
+            Console.WriteLine("Multiple NPC Coords: {0}", _multipleNpcCoords);
+            Console.WriteLine("Bad NPC Coords: {0}", _badNpcCoords);
         }
 
         private void ParseNpcLine(string line)
@@ -67,6 +71,7 @@ namespace WikiParser
                 else if (cresult.Code == CoordinatesParser.ResultCode.Success)
                 {
                     _npc.Coordinate = cresult.Coords;
+                    ++_singleNpcCoords;
                 }
                 else
                 {
