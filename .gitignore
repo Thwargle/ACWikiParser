@@ -1,0 +1,9 @@
+*.json
+*.dll
+*.pdb
+*.cache
+*.cs
+*.txt
+*.props
+*.targets
+/WikiParser/asheron_backup2_pages_current.xml
