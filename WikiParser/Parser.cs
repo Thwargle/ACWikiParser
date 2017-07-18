@@ -52,13 +52,7 @@ namespace WikiParser
                 if (offset < 0) return;
                 string ctext = line.Substring(offset + 1).Trim();
                 var cresult = (new CoordinatesParser()).FindCoordinates(ctext);
-                if (cresult.Code == CoordinatesParser.ResultCode.Multiple)
-                {
-                    Console.WriteLine("Multiple NPC Coords: {0}", ctext);
-                    ++_multipleNpcCoords;
-
-                }
-                else if (cresult.Code == CoordinatesParser.ResultCode.Failure)
+                if (cresult.Code == CoordinatesParser.ResultCode.Failure)
                 {
                     Console.WriteLine("Bad NPC Coords: {0}", ctext);
                     ++_badNpcCoords;
@@ -71,7 +65,14 @@ namespace WikiParser
                 else if (cresult.Code == CoordinatesParser.ResultCode.Success)
                 {
                     _npc.Coordinates = cresult.CoordsList;
-                    ++_singleNpcCoords;
+                    if (cresult.CoordsList.Count > 1)
+                    {
+                        ++_multipleNpcCoords;
+                    }
+                    else
+                    {
+                        ++_singleNpcCoords;
+                    }
                 }
                 else
                 {

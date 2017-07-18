@@ -7,7 +7,7 @@ namespace WikiParser
 {
     class CoordinatesParser
     {
-        public enum ResultCode { Success, Failure, Multiple, BadParse };
+        public enum ResultCode { Success, Failure, BadParse };
         public class Result { public ResultCode Code; public List<string> CoordsList; public Result() { Code = ResultCode.Failure; } }
         public Result FindCoordinates(string text)
         {
