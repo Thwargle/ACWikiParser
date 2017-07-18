@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.IO;
+using System.Collections;
 
 namespace WikiParser
 {
@@ -9,7 +10,8 @@ namespace WikiParser
     {
         enum ParseState { Nothing, NPC };
         private ParseState _state = ParseState.Nothing;
-        private Npc _npc = null;
+        private Npc _currentNpc = null;
+        private List<Npc> _allNpcs = new List<Npc>();
         private int _badNpcCoords;
         private int _multipleNpcCoords;
         private int _singleNpcCoords;
@@ -31,10 +33,22 @@ namespace WikiParser
                         break;
                 }
             }
+            WriteAllNpcs();
             Console.WriteLine("-----");
             Console.WriteLine("Single NPC Coords: {0}", _singleNpcCoords);
             Console.WriteLine("Multiple NPC Coords: {0}", _multipleNpcCoords);
             Console.WriteLine("Bad NPC Coords: {0}", _badNpcCoords);
+        }
+
+        private void WriteAllNpcs()
+        {
+            var arrlist = new ArrayList(_allNpcs.ToArray());
+            string text = Procurios.Public.JSON.JsonEncode(arrlist);
+            if (text != null)
+            {
+                string fname = "npcs2.txt";
+                System.IO.File.WriteAllText(fname, text);
+            }
         }
 
         private void ParseNpcLine(string line)
@@ -43,7 +57,7 @@ namespace WikiParser
             {
                 int offset = line.IndexOf('=');
                 if (offset < 0) return;
-                _npc.Name = line.Substring(offset + 1).Trim();
+                _currentNpc.Name = line.Substring(offset + 1).Trim();
                 return;
             }
             if (line.StartsWith(" | Location ="))
@@ -64,7 +78,7 @@ namespace WikiParser
                 }
                 else if (cresult.Code == CoordinatesParser.ResultCode.Success)
                 {
-                    _npc.Coordinates = cresult.CoordsList;
+                    _currentNpc.Coordinates = cresult.CoordsList;
                     if (cresult.CoordsList.Count > 1)
                     {
                         ++_multipleNpcCoords;
@@ -86,21 +100,22 @@ namespace WikiParser
             {
                 int offset = line.IndexOf('=');
                 if (offset < 0) return;
-                _npc.Type = line.Substring(offset + 1).Trim();
+                _currentNpc.Type = line.Substring(offset + 1).Trim();
                 return;
             }
             if (line.StartsWith(" |  Details ="))
             {
                 int offset = line.IndexOf('=');
                 if (offset < 0) return;
-                _npc.Description = line.Substring(offset + 1).Trim();
+                _currentNpc.Description = line.Substring(offset + 1).Trim();
                 return;
             }
             if (line.StartsWith("}}"))
             {
-                if (_npc.Coordinates.Count > 0)
+                if (_currentNpc.Coordinates.Count > 0)
                 {
-                    WriteNpc(_npc);
+                    _allNpcs.Add(_currentNpc);
+                    WriteNpc(_currentNpc);
                 }
                 _state = ParseState.Nothing;
             }
@@ -137,7 +152,7 @@ namespace WikiParser
             if (line == "{{NPC Row")
             {
                 _state = ParseState.NPC;
-                _npc = new Npc();
+                _currentNpc = new Npc();
                 return;
             }
         }
