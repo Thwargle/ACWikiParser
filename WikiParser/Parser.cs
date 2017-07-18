@@ -54,6 +54,7 @@ namespace WikiParser
                 }
                 combinedList.Add(joinedNpc);
             }
+            combinedList.Sort();
             string text = JsonConvert.SerializeObject(combinedList, Formatting.Indented);
             if (text != null)
             {
