@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.IO;
 using System.Collections;
+using Newtonsoft.Json;
 
 namespace WikiParser
 {
@@ -11,15 +12,12 @@ namespace WikiParser
         enum ParseState { Nothing, NPC };
         private ParseState _state = ParseState.Nothing;
         private Npc _currentNpc = null;
-        private List<Npc> _allNpcs = new List<Npc>();
+        private NpcList _allNpcs = new NpcList();
         private int _badNpcCoords;
         private int _multipleNpcCoords;
         private int _singleNpcCoords;
         public void Parse(StreamReader reader)
         {
-            // Clear files
-            WriteNpc(null);
-
             string line;
             while ((line = reader.ReadLine()) != null)
             {
@@ -42,11 +40,24 @@ namespace WikiParser
 
         private void WriteAllNpcs()
         {
-            var arrlist = new ArrayList(_allNpcs.ToArray());
-            string text = Procurios.Public.JSON.JsonEncode(arrlist);
+            var originalNpcList = _allNpcs.GetAllNpcs();
+            var combinedList = new List<Npc>();
+            foreach (var npcset in originalNpcList)
+            {
+                string name = Encode(npcset[0].Name);
+                string type = Encode(npcset[0].Type);
+                string desc = Encode(npcset[0].Description); // These might not all be the same but we don't care, we just use the first
+                var joinedNpc = new Npc() { Name = name, Type = type, Description = desc };
+                foreach (var lilnpc in npcset)
+                {
+                    joinedNpc.Coordinates.AddRange(lilnpc.Coordinates);
+                }
+                combinedList.Add(joinedNpc);
+            }
+            string text = JsonConvert.SerializeObject(combinedList, Formatting.Indented);
             if (text != null)
             {
-                string fname = "npcs2.txt";
+                string fname = "npcs.txt";
                 System.IO.File.WriteAllText(fname, text);
             }
         }
@@ -114,26 +125,12 @@ namespace WikiParser
             {
                 if (_currentNpc.Coordinates.Count > 0)
                 {
-                    _allNpcs.Add(_currentNpc);
-                    WriteNpc(_currentNpc);
+                    _allNpcs.AddNpc(_currentNpc);
                 }
                 _state = ParseState.Nothing;
             }
         }
 
-        private void WriteNpc(Npc npc)
-        {
-            if (npc == null)
-            {
-                File.Delete("npcs.txt");
-                return;
-            }
-            using (StreamWriter writer = File.AppendText("npcs.txt"))
-            {
-                writer.WriteLine("{0}|{1}|{2}|{3}", Encode(npc.Name), EncodeCoordsList(npc.Coordinates), Encode(npc.Type), Encode(npc.Description));
-                writer.Flush();
-            }
-        }
         private static string EncodeCoordsList(List<string> coordsList)
         {
             string txt = string.Join("^", coordsList.ToArray());
@@ -145,7 +142,14 @@ namespace WikiParser
             txt = txt.Replace("|", ",> ");
             txt = txt.Replace("^", ",> ");
             txt = txt.Replace("[", "").Replace("]", "");
-            return txt; // TODO check for vertical line
+            // Throw away anything after {{
+            int index = txt.IndexOf("{{");
+            if (index > 0)
+            {
+                txt = txt.Substring(0, index);
+            }
+            txt = txt.Replace("{", "");
+            return txt;
         }
         private void ParseUnknownLine(string line)
         {
