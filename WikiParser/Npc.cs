@@ -7,7 +7,7 @@ namespace WikiParser
     class Npc
     {
         public string Name;
-        public string Coordinate;
+        public List<string> Coordinates = new List<string>();
         public string Type;
         public string Description;
     }

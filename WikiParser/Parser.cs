@@ -9,9 +9,10 @@ namespace WikiParser
     {
         enum ParseState { Nothing, NPC };
         private ParseState _state = ParseState.Nothing;
-        private int _badNpcCoords;
         private Npc _npc = null;
+        private int _badNpcCoords;
         private int _multipleNpcCoords;
+        private int _singleNpcCoords;
         public void Parse(StreamReader reader)
         {
             // Clear files
@@ -30,7 +31,10 @@ namespace WikiParser
                         break;
                 }
             }
-            Console.WriteLine("Bad NPC Coords count: {0}, multiple NPC Coords count: {1}", _badNpcCoords, _multipleNpcCoords);
+            Console.WriteLine("-----");
+            Console.WriteLine("Single NPC Coords: {0}", _singleNpcCoords);
+            Console.WriteLine("Multiple NPC Coords: {0}", _multipleNpcCoords);
+            Console.WriteLine("Bad NPC Coords: {0}", _badNpcCoords);
         }
 
         private void ParseNpcLine(string line)
@@ -66,7 +70,8 @@ namespace WikiParser
                 }
                 else if (cresult.Code == CoordinatesParser.ResultCode.Success)
                 {
-                    _npc.Coordinate = cresult.Coords;
+                    _npc.Coordinates = cresult.CoordsList;
+                    ++_singleNpcCoords;
                 }
                 else
                 {
@@ -92,7 +97,7 @@ namespace WikiParser
             }
             if (line.StartsWith("}}"))
             {
-                if (_npc.Coordinate != null)
+                if (_npc.Coordinates.Count > 0)
                 {
                     WriteNpc(_npc);
                 }
@@ -109,14 +114,20 @@ namespace WikiParser
             }
             using (StreamWriter writer = File.AppendText("npcs.txt"))
             {
-                writer.WriteLine("{0}|{1}|{2}|{3}", Encode(npc.Name), Encode(npc.Coordinate), Encode(npc.Type), Encode(npc.Description));
+                writer.WriteLine("{0}|{1}|{2}|{3}", Encode(npc.Name), EncodeCoordsList(npc.Coordinates), Encode(npc.Type), Encode(npc.Description));
                 writer.Flush();
             }
         }
-        private string Encode(string txt)
+        private static string EncodeCoordsList(List<string> coordsList)
+        {
+            string txt = string.Join("^", coordsList.ToArray());
+            return txt;
+        }
+        private static string Encode(string txt)
         {
             if (txt == null) { txt = ""; }
             txt = txt.Replace("|", ",> ");
+            txt = txt.Replace("^", ",> ");
             txt = txt.Replace("[", "").Replace("]", "");
             return txt; // TODO check for vertical line
         }
