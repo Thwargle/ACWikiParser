@@ -9,8 +9,10 @@ namespace WikiParser
 {
     class Parser
     {
-        enum ParseState { Nothing, NPC };
+        enum ParseState { Nothing, NPC, Spell };
         private ParseState _state = ParseState.Nothing;
+        private Spell _currentSpell = null;
+        private SpellList _allSpells = new SpellList();
         private Npc _currentNpc = null;
         private NpcList _allNpcs = new NpcList();
         private int _badNpcCoords;
@@ -29,6 +31,9 @@ namespace WikiParser
                     case ParseState.NPC:
                         ParseNpcLine(line);
                         break;
+                    case ParseState.Spell:
+                        ParseSpell(line);
+                        break;
                 }
             }
             WriteAllNpcs();
@@ -36,6 +41,7 @@ namespace WikiParser
             Console.WriteLine("Single NPC Coords: {0}", _singleNpcCoords);
             Console.WriteLine("Multiple NPC Coords: {0}", _multipleNpcCoords);
             Console.WriteLine("Bad NPC Coords: {0}", _badNpcCoords);
+            WriteAllSpells();
         }
 
         private void WriteAllNpcs()
@@ -61,6 +67,41 @@ namespace WikiParser
                 string fname = "npcs.txt";
                 System.IO.File.WriteAllText(fname, text);
             }
+        }
+
+        private void WriteAllSpells()
+        {
+            var originalSpellList = _allSpells.GetAllSpells();
+            var combinedList = new List<Spell>();
+            foreach (var spellset in originalSpellList)
+            {
+                string name = Encode(spellset[0].Name);
+                var joinedSpell = new Spell() { Name = name};
+                combinedList.Add(joinedSpell);
+            }
+            combinedList.Sort();
+            string text = JsonConvert.SerializeObject(combinedList, Formatting.Indented);
+            if (text != null)
+            {
+                string fname = "spells.txt";
+                System.IO.File.WriteAllText(fname, text);
+            }
+        }
+
+
+        /*
+        {{Spell Table|{{Spell Row|Type=Learnable|Acid Bane I|30 min|25.0|10|1|Increases a shield or piece of armor's resistance to acid damage by 10%. Target yourself to cast this spell on all of your equipped armor.|{{Spell Formula|Lead Scarab|Hyssop|Powdered Onyx|Gypsum|Ashwood Talisman}}}}
+        */
+
+        private void ParseSpell(string line)
+        {
+            if (line.Contains("(Spell) |"))
+            {
+                int offset = line.IndexOf('[');
+                if (offset < 0) return;
+                _currentSpell.Name = line.Substring(offset + 1).Trim();
+                return;
+            }  
         }
 
         private void ParseNpcLine(string line)
@@ -158,6 +199,12 @@ namespace WikiParser
             {
                 _state = ParseState.NPC;
                 _currentNpc = new Npc();
+                return;
+            }
+            if (line == "{{Spell Row")
+            {
+                _state = ParseState.Spell;
+                _currentSpell = new Spell();
                 return;
             }
         }
