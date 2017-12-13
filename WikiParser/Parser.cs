@@ -18,6 +18,10 @@ namespace WikiParser
         private int _badNpcCoords;
         private int _multipleNpcCoords;
         private int _singleNpcCoords;
+        private int _learnableSpell;
+        private int _itemSpell;
+        private int _creatureSpell;
+        private int _badSpells;
         public void Parse(StreamReader reader)
         {
             string line;
@@ -42,6 +46,12 @@ namespace WikiParser
             Console.WriteLine("Multiple NPC Coords: {0}", _multipleNpcCoords);
             Console.WriteLine("Bad NPC Coords: {0}", _badNpcCoords);
             WriteAllSpells();
+            Console.WriteLine("-----");
+            Console.WriteLine("Learnable Spells: {0}", _learnableSpell);
+            Console.WriteLine("Item Spells: {0}", _itemSpell);
+            Console.WriteLine("Creature Spells: {0}", _creatureSpell);
+            Console.WriteLine("Bad Spells: {0}", _badSpells);
+
         }
 
         private void WriteAllNpcs()
@@ -64,7 +74,7 @@ namespace WikiParser
             string text = JsonConvert.SerializeObject(combinedList, Formatting.Indented);
             if (text != null)
             {
-                string fname = "npcs.txt";
+                string fname = "npcs.json";
                 System.IO.File.WriteAllText(fname, text);
             }
         }
@@ -76,14 +86,15 @@ namespace WikiParser
             foreach (var spellset in originalSpellList)
             {
                 string name = Encode(spellset[0].Name);
-                var joinedSpell = new Spell() { Name = name};
+                string type = Encode(spellset[0].Type);
+                var joinedSpell = new Spell() { Name = name, Type = type};
                 combinedList.Add(joinedSpell);
             }
             combinedList.Sort();
             string text = JsonConvert.SerializeObject(combinedList, Formatting.Indented);
             if (text != null)
             {
-                string fname = "spells.txt";
+                string fname = "spells.json";
                 System.IO.File.WriteAllText(fname, text);
             }
         }
@@ -95,13 +106,39 @@ namespace WikiParser
 
         private void ParseSpell(string line)
         {
-            if (line.Contains("(Spell) |"))
+            if (line.Contains("Type=Learnable|"))
             {
-                int offset = line.IndexOf('[');
+                int offset = line.IndexOf('|');
                 if (offset < 0) return;
-                _currentSpell.Name = line.Substring(offset + 1).Trim();
+                string[] lineArray = line.Split('|');
+                _currentSpell.Type = lineArray[1].ToString();
+                _currentSpell.Name = lineArray[2].ToString();
+                ++_learnableSpell;
+                _allSpells.AddSpell(_currentSpell);
                 return;
-            }  
+            }
+            if (line.Contains("Type=Item|"))
+            {
+                int offset = line.IndexOf('|');
+                if (offset < 0) return;
+                string[] lineArray = line.Split('|');
+                _currentSpell.Type = lineArray[1].ToString();
+                _currentSpell.Name = lineArray[2].ToString();
+                ++_itemSpell;
+                _allSpells.AddSpell(_currentSpell);
+                return;
+            }
+            if (line.Contains("Type=Creature|"))
+            {
+                int offset = line.IndexOf('|');
+                if (offset < 0) return;
+                string[] lineArray = line.Split('|');
+                _currentSpell.Type = lineArray[1].ToString();
+                _currentSpell.Name = lineArray[2].ToString();
+                ++_creatureSpell;
+                _allSpells.AddSpell(_currentSpell);
+                return;
+            }
         }
 
         private void ParseNpcLine(string line)
@@ -201,7 +238,7 @@ namespace WikiParser
                 _currentNpc = new Npc();
                 return;
             }
-            if (line == "{{Spell Row")
+            if (line.Contains("{{Spell Row"))
             {
                 _state = ParseState.Spell;
                 _currentSpell = new Spell();

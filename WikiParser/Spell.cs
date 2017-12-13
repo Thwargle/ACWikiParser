@@ -14,13 +14,13 @@ namespace WikiParser
         public int CompareTo(object that)
         {
             if (that is Spell) { return CompareTo(that as Spell); }
-            return 0;
+                return 0;
         }
         public int CompareTo(Spell that)
         {
             int c = Name.CompareTo(that.Name);
             if (c != 0) return c;
-            return Type.CompareTo(that.Type);
+                return Type.CompareTo(that.Type);
         }
     }
 }
